@@ -159,7 +159,7 @@ security.basic.enabled=false
   - Observe a URL de callback sendo retornada com um código de autorização OAuth2 `code` retornado
     - Exemplo: `http://callback/?code=WVewpf`
   - Execute a seguinte requisição HTTP POST
-    - `http://client-auth-code:secret@localhost:9999/oauth/token?grant_type=authorization_code&code=WVewpf&redirect_uri=http://callback`
+    - `http://client-auth-code:secret@localhost:8080/oauth/token?grant_type=authorization_code&code=WVewpf&redirect_uri=http://callback`
   - Verifique como resultado o OAuth2 `access_token` retornado
 
 ### Teste o fluxo Implicit via protocolo OAuth2

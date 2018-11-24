@@ -60,7 +60,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 @EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
 ```
 - Defina algumas restrições de segurança utilizando as anotações `@Secured` e `@PreAuthorize`
-```
+```java
 public class AlunoRestController {
 	... 
 	@Secured("ROLE_USER")

@@ -1,7 +1,7 @@
 # Laboratório 07
 
 ## Objetivos
-- Implementando e manipulando segurança com o protocolo OAuth2 e JWT
+- Implementando e manipulando segurança com o protocolo OAuth2
 
 ## Tarefas
 
@@ -98,175 +98,84 @@
       }
   }
 ```
+- Adicione a seguinte configuração do arquivo `application.properties`
+```
+security.basic.enabled=false    
+```
 - Execute e teste a aplicação
 
-### Teste o fluxo de geração tokens via protocolo OAuth2
-- Utilize os projetos definidos anteriormente
-- Modifique a configuração do projeto para adicionar suporte ao fluxo de resource owner password
+### Teste o fluxo Resource Owner Password via protocolo OAuth2
+- Modifique a configuração do `AuthServerConfig` para adicionar suporte ao fluxo de resource owner password
 ```java
   @Override
   public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
-      clients.inMemory().withClient("client")
+      clients.inMemory().withClient("client-password")
            .secret("secret")
-           .authorizedGrantTypes("password", "client_credentials", "authorization_code", "implicit")
+           .authorizedGrantTypes("password")
            .scopes("oauth2")
            .autoApprove(true) ;
   }
 ```
 - Execute e teste a aplicação
   - Execute a seguinte requisição HTTP POST
-    - `http://client:secret@localhost:8080/oauth/token?grant_type=password&username=barry&password=t0ps3cr3t`
-    - Verifique como resultado o OAuth2 `access_token` retornado via username / password
+    - `http://client-password:secret@localhost:8080/oauth/token?grant_type=password&username=barry&password=t0ps3cr3t`
+  - Verifique como resultado o OAuth2 `access_token` retornado
+
+### Teste o fluxo Client Credentials via protocolo OAuth2
+- Modifique a configuração do `AuthServerConfig` para adicionar suporte ao fluxo de `Client Credentials`
+```java
+  @Override
+  public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+      //...
+        .and().withClient("client-credentials")
+           .secret("secret")
+           .authorizedGrantTypes("client_credentials")
+           .scopes("oauth2")
+           .autoApprove(true) ;
+  }
+```
+- Execute e teste a aplicação
   - Execute a seguinte requisição HTTP POST
-    - `http://client:secret@localhost:8080/oauth/token?grant_type=client_credentials`
-    - Verifique como resultado o OAuth2 `access_token` retornado via client credentials
+    - `http://client-credentials:secret@localhost:8080/oauth/token?grant_type=client_credentials`
+  - Verifique como resultado o OAuth2 `access_token` retornado
 
-### Adicione o suporte JWT no serviço de segurança
-- Utilize os projetos definidos no exercício anterior
-- Adicione a dependência do `spring-security-jwt` no projeto
-```xml
-  <dependency>
-      <groupId>org.springframework.security</groupId>
-      <artifactId>spring-security-jwt</artifactId>
-  </dependency>
-```
-- Configure o suporte ao JWT ao serviço de autorização OAuth2 no projeto definindo por uma classe `AuthServerJwtConfig`
+### Teste o fluxo Authorization Code via protocolo OAuth2
+- Modifique a configuração do `AuthServerConfig` para adicionar suporte ao fluxo de `Authorization Code`
 ```java
-  @Configuration
-  public class AuthServerJwtConfig {
-    @Bean
-    public TokenStore tokenStore() {
-        return new JwtTokenStore(accessTokenConverter());
-    }
-
-    @Bean
-    public JwtAccessTokenConverter accessTokenConverter() {
-        JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-        converter.setSigningKey("123");
-        return converter;
-    }
-
-  }
-```
-- Modifique a configuração do servidor de autorização OAuth2 para adicionar suporte ao JWT
-```java
-  @Configuration
-  @EnableAuthorizationServer
-  public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
+  @Override
+  public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
       //...
-      @Autowired TokenStore tokenStore;      
-      @Autowired JwtAccessTokenConverter accessTokenConverter;
-
-      @Override
-      public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
-          endpoints.tokenStore(tokenStore)
-                   .accessTokenConverter(accessTokenConverter)
-                   .authenticationManager(authenticationManager);
-      }
-  }
-```
-- Configure o suporte ao JWT ao serviço de recursos OAuth2 no projeto definindo por uma classe `ResourceServerJwtConfig`
-```java
-  @Configuration
-  public class ResourceServerJwtConfig {
-    @Autowired TokenStore tokenStore;
-
-    @Bean
-    @Primary
-    public DefaultTokenServices tokenServices() {
-        DefaultTokenServices defaultTokenServices = new DefaultTokenServices();
-        defaultTokenServices.setTokenStore(tokenStore);
-        defaultTokenServices.setSupportRefreshToken(true);
-        return defaultTokenServices;
-     }    
-  }
-```
-- Modifique a configuração do servidor de recursos OAuth2 para adicionar suporte ao JWT
-```java
-  @Configuration
-  @EnableResourceServer
-  public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
-      //...
-      @Autowired DefaultTokenServices tokenServices;
-
-      @Override
-      public void configure(ResourceServerSecurityConfigurer config) {
-          config.tokenServices(tokenServices);
-      }
+      .and().withClient("client-auth-code")
+           .secret("secret")
+           .authorizedGrantTypes("authorization_code")
+           .scopes("oauth2")
+           .autoApprove(true) ;
   }
 ```
 - Execute e teste a aplicação
-  - Teste novamente os fluxos de autorização OAuth2 e verifique o JWT sendo utilizado
+  - Abra um web browser e accesse a seguinte URL
+    - `http://localhost:8080/oauth/authorize?response_type=code&client_id=client-auth-code&scope=oauth2&redirect_uri=http://callback`
+  - Verifique a tela de login sendo retornada e digite uma credencial válida (user: barry / pass: t0ps3cr3t)
+  - Observe a URL de callback sendo retornada com um código de autorização OAuth2 `code` retornado
+    - Exemplo: `http://callback/?code=WVewpf`
+  - Execute a seguinte requisição HTTP POST
+    - `http://client-auth-code:secret@localhost:9999/oauth/token?grant_type=authorization_code&code=WVewpf&redirect_uri=http://callback`
+  - Verifique como resultado o OAuth2 `access_token` retornado
 
-### [OPCIONAL]: Manipule chaves assimétricas com JWT
-- Utilize os projetos definidos anteriormente
-- Gere a chave privada utilizando a ferramenta `keytool`
-```
-  keytool -genkeypair -alias security-server
-                      -keyalg RSA
-                      -keypass mypass
-                      -keystore mykeys.jks
-                      -storepass mypass
-```
-- Será necessário instalar a ferramenta `openssl` para exportar a chave privada
-  - Windows
-    - http://gnuwin32.sourceforge.net/packages/openssl.htm
-  - Mac OS
-    - `brew install openssl`
-  - Linux
-    - https://geeksww.com/tutorials/libraries/openssl/installation/installing_openssl_on_ubuntu_linux.php
-- Exporte a chave pública a partir da chave privada gerada anteriormente
-```
-  keytool -list -rfc --keystore mykeys.jks | openssl x509 -inform pem -pubkey
-```
-- Crie um arquivo `public.txt` com o conteúdo da chave pública retornada
-```
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgIK2Wt4x2EtDl41C7vfp
-OsMquZMyOyteO2RsVeMLF/hXIeYvicKr0SQzVkodHEBCMiGXQDz5prijTq3RHPy2
-/5WJBCYq7yHgTLvspMy6sivXN7NdYE7I5pXo/KHk4nz+Fa6P3L8+L90E/3qwf6j3
-DKWnAgJFRY8AbSYXt1d5ELiIG1/gEqzC0fZmNhhfrBtxwWXrlpUDT0Kfvf0QVmPR
-xxCLXT+tEe1seWGEqeOLL5vXRLqmzZcBe1RZ9kQQm43+a9Qn5icSRnDfTAesQ3Cr
-lAWJKl2kcWU1HwJqw+dZRSZ1X4kEXNMyzPdPBbGmU6MHdhpywI7SKZT7mX4BDnUK
-eQIDAQAB
------END PUBLIC KEY-----
-```
-- Adicione as chaves privada e pública geradas no diretório `src/main/resources` do projeto
-  - `mykeys.jks`
-  - `public.txt`
-- Configure a chave privada no suporte JWT do serviço de autorização OAuth2 definindo pela classe `AuthServerJwtConfig`
+### Teste o fluxo Implicit via protocolo OAuth2
+- Modifique a configuração do `AuthServerConfig` para adicionar suporte ao fluxo de `Implicit`
 ```java
-  @Configuration
-  public class AuthServerJwtConfig {
-      //...   
-      @Bean
-      public JwtAccessTokenConverter accessTokenConverter() {
-          JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-          KeyStoreKeyFactory keyStoreKeyFactory =
-              new KeyStoreKeyFactory(new ClassPathResource("mykeys.jks"), "mypass".toCharArray());
-          converter.setKeyPair(keyStoreKeyFactory.getKeyPair("security-server"));
-          return converter;
-      }
-  }
-```
-- Configure a chave pública no suporte JWT do serviço de recursos OAuth2 definindo pela classe `ResourceServerJwtConfig`
-```java
-  @Configuration
-  public class ResourceServerJwtConfig {
-      //...         
-      public JwtAccessTokenConverter accessTokenConverter() {
-          JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-          Resource resource = new ClassPathResource("public.txt");
-          String publicKey = null;
-          try {
-              publicKey = IOUtils.toString(resource.getInputStream());
-          } catch (final IOException e) {
-              throw new RuntimeException(e);
-          }
-          converter.setVerifierKey(publicKey);
-          return converter;
-      }
+  @Override
+  public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+      //...
+      .and().withClient("client-implicit")
+           .secret("secret")
+           .authorizedGrantTypes("implicit")
+           .scopes("oauth2")
+           .autoApprove(true) ;
   }
 ```
 - Execute e teste a aplicação
-  - Teste novamente os fluxos de autorização OAuth2 e verifique o JWT via chaves assimétricas sendo validado
+  - Abra um web browser e acesse a seguinte URL
+    - `http://localhost:8080/oauth/authorize?response_type=token&client_id=client-implicit&redirect_uri=http://callback`
+  - Verifique como resultado o OAuth2 `access_token` sendo retornado implicitamente na URL de callback

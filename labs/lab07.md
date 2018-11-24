@@ -1,4 +1,4 @@
-# Laboratório 6
+# Laboratório 7
 
 ## Objetivos
 - Habilitando segurança com Spring Boot

@@ -1,7 +1,7 @@
 # Laboratório 01
 
 ## Objetivos
-- Empacote os projetos de microservices com Docker
+- Empacote o projeto com Docker
 
 ## Tarefas
 
@@ -22,9 +22,8 @@
   - Mac
     - https://docs.docker.com/toolbox/toolbox_install_mac/
 
-### Configure o Dockerfile para cada projeto de microservice
-- Utilize os projetos de microservices criados anteriormente
-- Defina um arquivo `Dockerfile` no diretório `src/main/docker` em cada projeto definido
+### Configure o Dockerfile para o projeto
+- Defina um arquivo `Dockerfile` no diretório `src/main/docker` no projeto definido
 ```
 FROM java:8
 
@@ -47,34 +46,6 @@ EXPOSE ${PORT}
 
 CMD java ${JAVA_OPTS} ${DEBUG_OPTS} -Djava.security.egd=file:/dev/./urandom -jar /app.jar
 ```
-- Será necessário configurar um novo Spring Profile `docker` no `bootstrap.yml` dos microservices para se conectar no Config Server via Docker
-```  
----
-spring:
-  profiles: docker
-  cloud:
-    config:
-      uri: http://172.17.0.1:8888
-      username: configUser
-      password: configPassword  
-
-```
-- Será necessário também ajustar as configurações de conexão com Eureka e Security nas propriedades gerenciadas via Config Server
-```
-eureka:
- client:
-   serviceUrl:
-     defaultZone: ${EUREKA_URI:http://eurekaUser:eurekaPassword@172.17.0.1:8761/eureka}
- instance:
-   preferIpAddress: true
-
-...   
-
-security:
-  oauth2:
-    resource:
-      userInfoUri: http://172.17.0.1:9999/users/current  
-```
 - Configure o plugin `docker-maven-plugin` no `pom.xml` de cada projeto
 ```xml
 <project>
@@ -86,7 +57,7 @@ security:
                 <artifactId>docker-maven-plugin</artifactId>
                 <version>0.4.13</version>
                 <configuration>
-                    <imageName>microservices/${project.artifactId}</imageName>
+                    <imageName>${project.artifactId}</imageName>
                     <dockerDirectory>${project.basedir}/src/main/docker</dockerDirectory>
                     <resources>
                         <resource>
@@ -111,13 +82,7 @@ docker images
 ```
 - Execute cada imagem Docker de cada microservice definido
 ```
-docker run -d -p 8888:8888 --name config microservices/config-server
-docker run -d -p 8761:8761 --name eureka microservices/eureka-server
-docker run -d -p 9999:9999 --name security microservices/security-server
-docker run -d -p 7979:7979 --name hystrix microservices/hystrix-dashboard
-docker run -d -p 8080:8080 --name aluno microservices/aluno-service
-docker run -d -p 8081:8081 --name disciplina microservices/disciplina-service
-docker run -d -p 8000:8000 --name zuul microservices/zuul-server
+docker run -d -p 8000:8000 --name boot [project.artifactId]
 ```
 - Verifique todas as imagens rodando no ambiente local
 ```
@@ -126,21 +91,9 @@ docker ps
 - Execute e teste a aplicação
   - Você pode verificar os logs de cada serviço utilizando `docker logs`
 ```
-docker logs -f config
-docker logs -f eureka
-docker logs -f security
-docker logs -f hystrix
-docker logs -f aluno
-docker logs -f disciplina
-docker logs -f zuul
+docker logs -f boot
 ```
 - Termine a execução de cada imagem Docker iniciada anteriormente
 ```
-docker stop config
-docker stop eureka
-docker stop security
-docker stop hystrix
-docker stop aluno
-docker stop disciplina
-docker stop zuul
+docker stop boot
 ```

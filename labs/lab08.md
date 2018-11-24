@@ -181,6 +181,14 @@ eQIDAQAB
       }
   }
 ```
+- Adicione a dependência do `commons-io` no projeto
+```xml
+  <dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.3</version>
+</dependency>
+```
 - Configure a chave pública no suporte JWT do serviço de recursos OAuth2 definindo pela classe `ResourceServerJwtConfig`
 ```java
   @Configuration

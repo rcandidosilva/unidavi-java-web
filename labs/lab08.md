@@ -1,4 +1,4 @@
-# Laboratório 10
+# Laboratório 08
 
 ## Objetivos
 - Trabalhando com JSON Web Tokens
@@ -7,7 +7,7 @@
 
 ### Adicione o suporte JWT no serviço de segurança
 - Utilize os projetos definidos no exercício anterior
-- Adicione a dependência do `spring-security-jwt` no projeto do `security-server`
+- Adicione a dependência do `spring-security-jwt` no projeto
 ```xml
   <dependency>
       <groupId>org.springframework.security</groupId>
@@ -84,7 +84,7 @@
 
 ### Adicione informações adicionais no JWT payload
 - Utilize os projetos definidos anteriormente
-- Defina uma classe `JwtTokenEnhancer` para incrementar informações adicionais ao JWT retornado no projeto `security-server`
+- Defina uma classe `JwtTokenEnhancer` para incrementar informações adicionais ao JWT retornado no projeto
 ```java
   public class JwtTokenEnhancer implements TokenEnhancer {
       @Override
@@ -130,7 +130,7 @@
 - Execute e teste a aplicação
   - Teste novamente os fluxos de autorização OAuth2 e verifique o JWT modificado sendo retornado
 
-### Manipule chaves assimétricas com JWT
+### [OPCIONAL] Manipule chaves assimétricas com JWT
 - Utilize os projetos definidos anteriormente
 - Gere a chave privada utilizando a ferramenta `keytool`
 ```

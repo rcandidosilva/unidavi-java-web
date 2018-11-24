@@ -1,4 +1,4 @@
-# Laboratório 9
+# Laboratório 6
 
 ## Objetivos
 - Habilitando segurança com Spring Boot
@@ -58,5 +58,4 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 @EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
 ```
 - Defina algumas restrições de segurança utilizando as anotações `@Secured` e `@PreAuthorize`
-- Execute e teste a aplicação 
-
+- Execute e teste a aplicação

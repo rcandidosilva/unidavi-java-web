@@ -82,7 +82,7 @@
 - Execute e teste a aplicação
   - Teste novamente os fluxos de autorização OAuth2 e verifique o JWT sendo utilizado
 
-### Adicione informações adicionais no JWT payload
+### [OPCIONAL] Adicione informações adicionais no JWT payload
 - Utilize os projetos definidos anteriormente
 - Defina uma classe `JwtTokenEnhancer` para incrementar informações adicionais ao JWT retornado no projeto
 ```java

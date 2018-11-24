@@ -1,61 +1,272 @@
-# Laboratório 7
+# Laboratório 07
 
 ## Objetivos
-- Habilitando segurança com Spring Boot
+- Implementando e manipulando segurança com o protocolo OAuth2 e JWT
 
 ## Tarefas
-### Habilite segurança no projeto Spring Boot
-- Utilize o projeto criado no exercício anterior
-- Configure a dependência do Spring Security
+
+### Implemente um serviço de segurança utilizando o protocolo OAuth2
+- Utilize os projetos definidos no exercício anterior
+- Adicione a dependência `spring-security-oauth2` no seu projeto
 ```xml
   <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security</artifactId>
+      <groupId>org.springframework.security.oauth</groupId>
+      <artifactId>spring-security-oauth2</artifactId>
   </dependency>
 ```
-- Configure as informações de usuário e senha no `application.properties`
+- Configure o serviço de autorização OAuth2 utilizando a anotação `@EnableAuthorizationServer`
+```java
+  @Configuration
+  @EnableAuthorizationServer
+  public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
+      @Autowired
+      @Qualifier("authenticationManagerBean")
+      AuthenticationManager authenticationManager;
+
+      @Override
+      public void configure(AuthorizationServerSecurityConfigurer oauthServer) throws Exception {
+          oauthServer.tokenKeyAccess("permitAll()").checkTokenAccess("isAuthenticated()");
+      }
+
+      @Override
+      public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+          // TODO define the client details
+      }
+
+      @Override
+      public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
+          endpoints.authenticationManager(authenticationManager);
+      }
+  }
 ```
-security.user.name=root
-security.user.password=t0ps3cr3t
+- Configure/modifique os detalhes de segurança (usuário, perfil, etc) para serem utilizados pela aplicação
+```java
+  @Configuration
+  public class SecurityConfig extends WebSecurityConfigurerAdapter {
+      @Bean
+      @Override
+      public AuthenticationManager authenticationManagerBean() throws Exception {
+          return super.authenticationManagerBean();
+      }
+
+      @Autowired
+      public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+          auth.inMemoryAuthentication()
+              .withUser("barry").password("t0ps3cr3t").roles("USER").and()
+              .withUser("larry").password("t0ps3cr3t").roles("USER", "MANAGER").and()
+              .withUser("root").password("t0ps3cr3t").roles("USER", "MANAGER", "ADMIN");
+      }      
+
+      @Override
+    	public void configure(HttpSecurity http) throws Exception {
+          http.csrf().disable()
+            	.requestMatchers().antMatchers("/login", "/oauth/authorize").and()
+            		.authorizeRequests().anyRequest().authenticated().and()
+            		.formLogin().permitAll();
+    	}
+  }
+```
+- Configure o serviço de recursos OAuth2 utilizando a anotação `@EnableResourceServer`
+```java
+  @Configuration
+  @EnableResourceServer
+  public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
+
+     @Override
+     public void configure(HttpSecurity http) throws Exception {
+         http.authorizeRequests()
+             .antMatchers("/users/ping").permitAll()
+             .antMatchers("/users/current").authenticated()
+             .anyRequest().authenticated();
+     }
+  }
+```
+- Implemente também um REST controller para retornar as informações dos usuários
+```java
+  @RestController
+  @RequestMapping("/users")
+  public class UserRestController {
+
+      @RequestMapping("/current")
+      public Principal current(Principal principal) {
+          return principal;
+      }
+
+      @RequestMapping("/ping")
+      public ResponseEntity<String> ping() {
+          return ResponseEntity.ok("ping: " + System.currentTimeMillis());
+      }
+  }
 ```
 - Execute e teste a aplicação
 
-### Configure diferentes usuários e roles para acessar a aplicação
-- Utilize o projeto definido anteriormente
-- Defina uma nova configuração de segurança para habilitar uma lista de usuários disponíveis para autenticação
-  - Utilize como modelo de configuração o exemplo abaixo:
+### Teste o fluxo de geração tokens via protocolo OAuth2
+- Utilize os projetos definidos anteriormente
+- Modifique a configuração do projeto para adicionar suporte ao fluxo de resource owner password
 ```java
-@Configuration
-public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
-    @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-            auth.inMemoryAuthentication()
-                .withUser("barry").password("t0ps3cr3t").roles("USER");
-    }
-}
-```
-- Execute e teste a aplicação acessando-a com diferentes usuários
-
-### Utilize diferentes privilégios na autorização dos endpoints da aplicação
-- Utilize o projeto defindo anteriormente
-- Adicione algumas restrições de segurança via configuração centralizada
-  - Utilize como modelo de configuração o exemplo abaixo:
-```java
-@Configuration
-public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
   @Override
-	protected void configure(HttpSecurity http) throws Exception {
-		http.authorizeRequests()
-			.antMatchers("/foo/**").hasAnyRole("USER")
-			.antMatchers("/bar/**").hasAnyRole("MANAGER")
-			.anyRequest().fullyAuthenticated()
-			.and().httpBasic().and().csrf().disable();
-	}
-}
+  public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+      clients.inMemory().withClient("client")
+           .secret("secret")
+           .authorizedGrantTypes("password", "client_credentials", "authorization_code", "implicit")
+           .scopes("oauth2")
+           .autoApprove(true) ;
+  }
 ```
-- Habilite a configuração para uso de anotações de segurança nos métodos da aplicação
-```java
-@EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
-```
-- Defina algumas restrições de segurança utilizando as anotações `@Secured` e `@PreAuthorize`
 - Execute e teste a aplicação
+  - Execute a seguinte requisição HTTP POST
+    - `http://client:secret@localhost:8080/oauth/token?grant_type=password&username=barry&password=t0ps3cr3t`
+    - Verifique como resultado o OAuth2 `access_token` retornado via username / password
+  - Execute a seguinte requisição HTTP POST
+    - `http://client:secret@localhost:8080/oauth/token?grant_type=client_credentials`
+    - Verifique como resultado o OAuth2 `access_token` retornado via client credentials
+
+### Adicione o suporte JWT no serviço de segurança
+- Utilize os projetos definidos no exercício anterior
+- Adicione a dependência do `spring-security-jwt` no projeto
+```xml
+  <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-jwt</artifactId>
+  </dependency>
+```
+- Configure o suporte ao JWT ao serviço de autorização OAuth2 no projeto definindo por uma classe `AuthServerJwtConfig`
+```java
+  @Configuration
+  public class AuthServerJwtConfig {
+    @Bean
+    public TokenStore tokenStore() {
+        return new JwtTokenStore(accessTokenConverter());
+    }
+
+    @Bean
+    public JwtAccessTokenConverter accessTokenConverter() {
+        JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+        converter.setSigningKey("123");
+        return converter;
+    }
+
+  }
+```
+- Modifique a configuração do servidor de autorização OAuth2 para adicionar suporte ao JWT
+```java
+  @Configuration
+  @EnableAuthorizationServer
+  public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
+      //...
+      @Autowired TokenStore tokenStore;      
+      @Autowired JwtAccessTokenConverter accessTokenConverter;
+
+      @Override
+      public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
+          endpoints.tokenStore(tokenStore)
+                   .accessTokenConverter(accessTokenConverter)
+                   .authenticationManager(authenticationManager);
+      }
+  }
+```
+- Configure o suporte ao JWT ao serviço de recursos OAuth2 no projeto definindo por uma classe `ResourceServerJwtConfig`
+```java
+  @Configuration
+  public class ResourceServerJwtConfig {
+    @Autowired TokenStore tokenStore;
+
+    @Bean
+    @Primary
+    public DefaultTokenServices tokenServices() {
+        DefaultTokenServices defaultTokenServices = new DefaultTokenServices();
+        defaultTokenServices.setTokenStore(tokenStore);
+        defaultTokenServices.setSupportRefreshToken(true);
+        return defaultTokenServices;
+     }    
+  }
+```
+- Modifique a configuração do servidor de recursos OAuth2 para adicionar suporte ao JWT
+```java
+  @Configuration
+  @EnableResourceServer
+  public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
+      //...
+      @Autowired DefaultTokenServices tokenServices;
+
+      @Override
+      public void configure(ResourceServerSecurityConfigurer config) {
+          config.tokenServices(tokenServices);
+      }
+  }
+```
+- Execute e teste a aplicação
+  - Teste novamente os fluxos de autorização OAuth2 e verifique o JWT sendo utilizado
+
+### [OPCIONAL]: Manipule chaves assimétricas com JWT
+- Utilize os projetos definidos anteriormente
+- Gere a chave privada utilizando a ferramenta `keytool`
+```
+  keytool -genkeypair -alias security-server
+                      -keyalg RSA
+                      -keypass mypass
+                      -keystore mykeys.jks
+                      -storepass mypass
+```
+- Será necessário instalar a ferramenta `openssl` para exportar a chave privada
+  - Windows
+    - http://gnuwin32.sourceforge.net/packages/openssl.htm
+  - Mac OS
+    - `brew install openssl`
+  - Linux
+    - https://geeksww.com/tutorials/libraries/openssl/installation/installing_openssl_on_ubuntu_linux.php
+- Exporte a chave pública a partir da chave privada gerada anteriormente
+```
+  keytool -list -rfc --keystore mykeys.jks | openssl x509 -inform pem -pubkey
+```
+- Crie um arquivo `public.txt` com o conteúdo da chave pública retornada
+```
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgIK2Wt4x2EtDl41C7vfp
+OsMquZMyOyteO2RsVeMLF/hXIeYvicKr0SQzVkodHEBCMiGXQDz5prijTq3RHPy2
+/5WJBCYq7yHgTLvspMy6sivXN7NdYE7I5pXo/KHk4nz+Fa6P3L8+L90E/3qwf6j3
+DKWnAgJFRY8AbSYXt1d5ELiIG1/gEqzC0fZmNhhfrBtxwWXrlpUDT0Kfvf0QVmPR
+xxCLXT+tEe1seWGEqeOLL5vXRLqmzZcBe1RZ9kQQm43+a9Qn5icSRnDfTAesQ3Cr
+lAWJKl2kcWU1HwJqw+dZRSZ1X4kEXNMyzPdPBbGmU6MHdhpywI7SKZT7mX4BDnUK
+eQIDAQAB
+-----END PUBLIC KEY-----
+```
+- Adicione as chaves privada e pública geradas no diretório `src/main/resources` do projeto
+  - `mykeys.jks`
+  - `public.txt`
+- Configure a chave privada no suporte JWT do serviço de autorização OAuth2 definindo pela classe `AuthServerJwtConfig`
+```java
+  @Configuration
+  public class AuthServerJwtConfig {
+      //...   
+      @Bean
+      public JwtAccessTokenConverter accessTokenConverter() {
+          JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+          KeyStoreKeyFactory keyStoreKeyFactory =
+              new KeyStoreKeyFactory(new ClassPathResource("mykeys.jks"), "mypass".toCharArray());
+          converter.setKeyPair(keyStoreKeyFactory.getKeyPair("security-server"));
+          return converter;
+      }
+  }
+```
+- Configure a chave pública no suporte JWT do serviço de recursos OAuth2 definindo pela classe `ResourceServerJwtConfig`
+```java
+  @Configuration
+  public class ResourceServerJwtConfig {
+      //...         
+      public JwtAccessTokenConverter accessTokenConverter() {
+          JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+          Resource resource = new ClassPathResource("public.txt");
+          String publicKey = null;
+          try {
+              publicKey = IOUtils.toString(resource.getInputStream());
+          } catch (final IOException e) {
+              throw new RuntimeException(e);
+          }
+          converter.setVerifierKey(publicKey);
+          return converter;
+      }
+  }
+```
+- Execute e teste a aplicação
+  - Teste novamente os fluxos de autorização OAuth2 e verifique o JWT via chaves assimétricas sendo validado

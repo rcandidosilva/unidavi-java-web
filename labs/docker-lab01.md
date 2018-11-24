@@ -75,25 +75,39 @@ CMD java ${JAVA_OPTS} ${DEBUG_OPTS} -Djava.security.egd=file:/dev/./urandom -jar
 - Realize o build da aplicação e verifique as Docker images sendo criada para cada microservice
   - `mvn clean package docker:build`
 
-### Execute a aplicação utilizando as images Docker definidas
-- Liste e identifique todas as imagens definidas no registro Docker local
+### Execute a aplicação utilizando as imagem Docker definida
+- Liste e identifique a imagem definida no registro Docker local
 ```
 docker images
 ```
-- Execute cada imagem Docker de cada microservice definido
+- Execute a imagem Docker definida
 ```
 docker run -d -p 8000:8000 --name boot [project.artifactId]
 ```
-- Verifique todas as imagens rodando no ambiente local
+- Verifique a imagem rodando no ambiente local
 ```
 docker ps
 ```
 - Execute e teste a aplicação
-  - Você pode verificar os logs de cada serviço utilizando `docker logs`
+  - Você pode verificar o log da aplicação utilizando `docker logs`
 ```
 docker logs -f boot
 ```
-- Termine a execução de cada imagem Docker iniciada anteriormente
+- Termine a execução da imagem Docker iniciada anteriormente
 ```
 docker stop boot
+```
+### Publique a imagem Docker no repositório Docker Hub
+- Utilize a imagem Docker produzida anteriormente
+- Realize o Docker login no Docker Hub
+```
+docker login -u [user] -p [password]
+```
+- Defina tag para a imagem Docker produzida
+```
+docker tag [project.artifactId] [username]/[project.artifactId]
+```
+- Publique a imagem Docker no repositório
+```
+docker push [username]/[project.artifactId]
 ```

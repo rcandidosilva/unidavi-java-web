@@ -27,11 +27,12 @@ security.user.password=t0ps3cr3t
 ```java
 @Configuration
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
-    @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-            auth.inMemoryAuthentication()
-                .withUser("barry").password("t0ps3cr3t").roles("USER");
-    }
+	@Autowired
+	public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
+		auth.inMemoryAuthentication().withUser("barry").password("t0ps3cr3t").roles("USER")
+			.and().withUser("larry").password("t0ps3cr3t").roles("USER", "MANAGER")
+			.and().withUser("root").password("t0ps3cr3t").roles("USER", "MANAGER", "ADMIN");
+	}
 }
 ```
 - Execute e teste a aplicação acessando-a com diferentes usuários
@@ -43,11 +44,12 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 ```java
 @Configuration
 public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
-  @Override
+  ...
+	@Override
 	protected void configure(HttpSecurity http) throws Exception {
 		http.authorizeRequests()
-			.antMatchers("/foo/**").hasAnyRole("USER")
-			.antMatchers("/bar/**").hasAnyRole("MANAGER")
+			.antMatchers("/alunos/**").hasAnyRole("USER")
+			.antMatchers("/disciplinas/**").hasAnyRole("MANAGER")
 			.anyRequest().fullyAuthenticated()
 			.and().httpBasic().and().csrf().disable();
 	}

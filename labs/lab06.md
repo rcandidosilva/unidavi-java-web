@@ -60,5 +60,21 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 @EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
 ```
 - Defina algumas restrições de segurança utilizando as anotações `@Secured` e `@PreAuthorize`
+```
+public class AlunoRestController {
+	... 
+	@Secured("ROLE_USER")
+	@GetMapping("/{id}")
+	public ResponseEntity<AlunoResource> get(@PathVariable Long id) {
+	... 
+	}
+	
+	@Secured("ROLE_MANAGER")
+	@DeleteMapping("/{id}")
+	public ResponseEntity<AlunoResource> delete(@PathVariable Long id) {
+	...
+	}
+}
+```	
 - Execute e teste a aplicação 
 
